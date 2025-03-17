@@ -6,10 +6,14 @@
 }
 
 .title {
-    padding: 20px 0px;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
-    font-size: 30px;
-    font-weight: 500;
+    padding: 15px 0;
+    font-family: 'Poppins', sans-serif;
+    font-size: 28px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    border-bottom: 2px solid #007ACC; 
+    margin-bottom: 20px; 
 }
 
 .button {
@@ -17,3 +21,4 @@
     justify-content: end;
     padding: 0px 0px 20px 0px;
 }
+

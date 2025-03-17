@@ -1,14 +1,72 @@
 "use client";
 
-import Image from "next/image";
 import styles from "./page.module.css";
 import ImageList from "@mui/material/ImageList";
 import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { styled } from "@mui/material/styles";
+import { Dialog, DialogContent } from "@mui/material";
 import ImageListItem from "@mui/material/ImageListItem";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import Alert from '@mui/material/Alert';
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function Home() {
+  const [images, setImages] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false)
+  const [selectedImage, setSelectedImage] = useState("");
+  const [sizeImage, setSizeImage] = useState("medium");
+
+  const handleChange = (event) => {
+    setSizeImage(event.target.value);
+  };
+
+  const handleOpen = (imageSrc) => {
+    setSelectedImage(imageSrc);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedImage("");
+  };
+
+  useEffect(() => {
+    getImages();
+  }, []);
+
+  async function getImages() {
+    try {
+      const result = await axios.get("http://localhost:3001/images");
+      // console.log(result.data.result.images);
+      setImages(result.data.result.images);
+    } catch (error) {
+      console.error("Error al obtener las imagenes de cloudflare ", error);
+    }
+  }
+
+  async function uploadImage(image) {
+    try {
+      // console.log(image[0]);
+      const formData = new FormData();
+      formData.append("file", image[0]);
+      const result = await axios.post(
+        "http://localhost:3001/images/upload",
+        formData
+      );
+      if (result.status === 200) {
+        setAlertVisible(true);
+        setTimeout(() => {setAlertVisible(false); window.location.reload();}, 2000)
+      }
+    } catch (error) {
+      console.error("Error al subir la imagen:", error);
+    }
+  }
 
   const VisuallyHiddenInput = styled("input")({
     clip: "rect(0 0 0 0)",
@@ -25,8 +83,13 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <div>
-        <p className={styles.title}>Cloudflare gallery</p>
+        <h2 className={styles.title}>Cloudflare gallery</h2>
       </div>
+      {alertVisible && (
+        <Alert style={{ marginBottom: 30 }} severity="success">
+          Imagen subida correctamente
+        </Alert>
+      )}
       <div className={styles.button}>
         <Button
           component="label"
@@ -38,76 +101,54 @@ export default function Home() {
           Subir imagen
           <VisuallyHiddenInput
             type="file"
-            onChange={(event) => console.log(event.target.files)}
-            multiple
+            onChange={(event) => uploadImage(event.target.files)}
           />
         </Button>
       </div>
+      <FormControl required style={{ width: "200px" }}>
+          <InputLabel id="label">Tamaño imagenes</InputLabel>
+          <Select
+            labelId="label"
+            id="label"
+            value={sizeImage}
+            label="Tamaño imagenes"
+            onChange={handleChange}
+          >
+            <MenuItem value={"medium"}>500x500</MenuItem>
+            <MenuItem value={"public"}>750x750</MenuItem>
+          </Select>
+        </FormControl>
       <div>
-        <ImageList sx={{ width: 800, height: 750 }} cols={3} rowHeight={250}>
-          {itemData.map((item) => (
-            <ImageListItem key={item.img}>
+        <ImageList sx={{ width: 1150, height: 850 }} cols={4} gap={10}>
+          {images.map((item) => (
+            <ImageListItem key={item.id}>
               <img
-                srcSet={`${item.img}?w=250&h=250&fit=crop&auto=format&dpr=2 2x`}
-                src={`${item.img}?w=250&h=250&fit=crop&auto=format`}
-                alt={item.title}
+                src={item.variants.find((variant) => variant.includes("small"))}
+                alt={item.id}
                 loading="lazy"
+                style={{ width: "250px", height: "250px" }}
+                onClick={() =>
+                  handleOpen(
+                    item.variants.find((variant) => variant.includes(sizeImage))
+                  )
+                }
               />
             </ImageListItem>
           ))}
         </ImageList>
+        <Dialog open={open} onClose={handleClose} maxWidth="lg">
+          <DialogContent>
+            <img
+              src={selectedImage ? selectedImage : null}
+              alt="Vista ampliada"
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
 }
-
-const itemData = [
-  {
-    img: "https://images.unsplash.com/photo-1551963831-b3b1ca40c98e",
-    title: "Breakfast",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d",
-    title: "Burger",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1522770179533-24471fcdba45",
-    title: "Camera",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1444418776041-9c7e33cc5a9c",
-    title: "Coffee",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1533827432537-70133748f5c8",
-    title: "Hats",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62",
-    title: "Honey",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1516802273409-68526ee1bdd6",
-    title: "Basketball",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1518756131217-31eb79b20e8f",
-    title: "Fern",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1597645587822-e99fa5d45d25",
-    title: "Mushrooms",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1567306301408-9b74779a11af",
-    title: "Tomato basil",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1471357674240-e1a485acb3e1",
-    title: "Sea star",
-  },
-  {
-    img: "https://images.unsplash.com/photo-1589118949245-7d38baf380d6",
-    title: "Bike",
-  },
-];
